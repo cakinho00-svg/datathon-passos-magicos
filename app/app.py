@@ -8,6 +8,7 @@ import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import os
 
 # ── Configuração da página ────────────────────────────────────────────────────
 st.set_page_config(
@@ -17,11 +18,13 @@ st.set_page_config(
 )
 
 # ── Carregamento do modelo ────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 @st.cache_resource
 def carregar_modelo():
-    modelo   = joblib.load("model/modelo_risco.pkl")
-    scaler   = joblib.load("model/scaler.pkl")
-    features = joblib.load("model/features.pkl")
+    modelo   = joblib.load(os.path.join(BASE_DIR, "model", "modelo_risco.pkl"))
+    scaler   = joblib.load(os.path.join(BASE_DIR, "model", "scaler.pkl"))
+    features = joblib.load(os.path.join(BASE_DIR, "model", "features.pkl"))
     return modelo, scaler, features
 
 modelo, scaler, FEATURES = carregar_modelo()
