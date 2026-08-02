@@ -15,8 +15,6 @@ import matplotlib.ticker as mticker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-APP_VERSION = "2026-08-02-set-pad-fix"
-
 st.set_page_config(page_title="Passos Magicos Analytics", page_icon="📊",
                    layout="wide", initial_sidebar_state="expanded")
 
@@ -75,7 +73,7 @@ def estilo_fig(fig, ax_list=None, grid_axis="y"):
         ax.title.set_color("#F8FAFC")
         ax.title.set_fontsize(12)
         ax.title.set_fontweight("bold")
-        ax.title.set_y(1.02)
+        ax.title.set_pad(14)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.spines["left"].set_color(GRID)
@@ -164,7 +162,6 @@ with st.sidebar:
     st.markdown('<p style="font-size:.82rem;color:#475569">XGBoost AUC 0.795</p>', unsafe_allow_html=True)
     st.markdown(f'<p style="font-size:.72rem;color:#334155;margin-top:.8rem;text-transform:uppercase">Registros</p>', unsafe_allow_html=True)
     st.markdown(f'<p style="font-size:.82rem;color:#475569">{len(df_full):,} alunos-ano</p>', unsafe_allow_html=True)
-    st.caption(f"Versão: {APP_VERSION}")
 
 # ═══ HOME ═════════════════════════════════════════════════════════════════════
 if pagina == "Home":
