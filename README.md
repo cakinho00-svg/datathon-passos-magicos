@@ -47,7 +47,7 @@ A **Associação Passos Mágicos** atua há 35 anos na transformação de vida d
 
 ## Aplicação Streamlit
 
-🔗 **[Acesse o app aqui](https://seu-link-streamlit.streamlit.app)** ← substituir após o deploy
+🔗 **[Acesse o app aqui]([https://seu-link-streamlit.streamlit.app](https://datathon-paapps-magicos-c83ufhmlkpkc6gawdhxbka.streamlit.app/#aspectos-psicossociais-ips))** ← substituir após o deploy
 
 O app permite:
 - Avaliar o risco de um aluno individualmente com sliders interativos
