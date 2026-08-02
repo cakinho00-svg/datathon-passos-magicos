@@ -15,7 +15,7 @@ import matplotlib.ticker as mticker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-APP_VERSION = "2026-08-02-layout-estavel-v3"
+APP_VERSION = "V1"
 
 st.set_page_config(page_title="Passos Magicos Analytics", page_icon="📊",
                    layout="wide", initial_sidebar_state="expanded")
