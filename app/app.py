@@ -23,7 +23,12 @@ def carregar_modelo():
 
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv(os.path.join(BASE_DIR, "data", "painel_pede_tratado.csv"))
+    # CSV está em /data/ na raiz do repositório, um nível acima de /app/
+    csv_path = os.path.join(BASE_DIR, "..", "data", "painel_pede_tratado.csv")
+    if not os.path.exists(csv_path):
+        # fallback: mesma pasta app/data/
+        csv_path = os.path.join(BASE_DIR, "data", "painel_pede_tratado.csv")
+    df = pd.read_csv(csv_path)
     df["Pedra"]  = df["Pedra"].replace({"Agata":"Agata","INCLUIR":None})
     df["Genero"] = df["Genero"].replace({"Menina":"Feminino","Menino":"Masculino"})
     df["IAN_Cat"]= df["IAN"].map({2.5:"Severo",5.0:"Moderado",10.0:"Adequado"})
