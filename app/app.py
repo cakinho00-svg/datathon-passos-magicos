@@ -15,14 +15,23 @@ import matplotlib.ticker as mticker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-st.set_page_config(page_title="Passos Magicos Analytics", page_icon="star",
+st.set_page_config(page_title="Passos Magicos Analytics", page_icon="📊",
                    layout="wide", initial_sidebar_state="expanded")
 
 @st.cache_resource
 def carregar_modelo():
-    m = joblib.load(os.path.join(BASE_DIR, "model", "modelo_risco.pkl"))
-    s = joblib.load(os.path.join(BASE_DIR, "model", "scaler.pkl"))
-    f = joblib.load(os.path.join(BASE_DIR, "model", "features.pkl"))
+    caminhos = {
+        "modelo": os.path.join(BASE_DIR, "model", "modelo_risco.pkl"),
+        "scaler": os.path.join(BASE_DIR, "model", "scaler.pkl"),
+        "features": os.path.join(BASE_DIR, "model", "features.pkl"),
+    }
+    faltantes = [nome for nome, caminho in caminhos.items() if not os.path.exists(caminho)]
+    if faltantes:
+        st.error(f"Arquivos do modelo nao encontrados: {', '.join(faltantes)}")
+        st.stop()
+    m = joblib.load(caminhos["modelo"])
+    s = joblib.load(caminhos["scaler"])
+    f = joblib.load(caminhos["features"])
     return m, s, f
 
 @st.cache_data
@@ -50,27 +59,46 @@ TEXTO   = "#94A3B8"
 GRID    = "#1E293B"
 ACCENT  = "#00C897"
 
-def estilo_fig(fig, ax_list=None):
+def estilo_fig(fig, ax_list=None, grid_axis="y"):
+    """Padroniza todos os graficos para uma leitura limpa e consistente."""
     fig.patch.set_facecolor(FUNDO)
     axes = ax_list if ax_list else [fig.gca()]
     for ax in axes:
         ax.set_facecolor(FUNDO)
-        ax.tick_params(colors=TEXTO, labelsize=10)
+        ax.tick_params(colors=TEXTO, labelsize=9, length=0)
         ax.xaxis.label.set_color(TEXTO)
         ax.yaxis.label.set_color(TEXTO)
-        ax.xaxis.label.set_fontsize(10)
-        ax.yaxis.label.set_fontsize(10)
-        ax.title.set_color("#F1F5F9")
+        ax.xaxis.label.set_fontsize(9)
+        ax.yaxis.label.set_fontsize(9)
+        ax.title.set_color("#F8FAFC")
         ax.title.set_fontsize(12)
         ax.title.set_fontweight("bold")
-        for spine in ax.spines.values():
-            spine.set_edgecolor(GRID)
-        ax.grid(color=GRID, linewidth=0.5, alpha=0.6)
-    fig.tight_layout()
+        ax.title.set_pad(14)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_color(GRID)
+        ax.spines["bottom"].set_color(GRID)
+        ax.set_axisbelow(True)
+        ax.grid(False)
+        if grid_axis:
+            ax.grid(axis=grid_axis, color=GRID, linewidth=0.7, alpha=0.75)
+    fig.tight_layout(pad=1.4)
     return fig
 
+def titulo_grafico(titulo, subtitulo=None):
+    """Cabecalho textual fora do grafico para melhorar a hierarquia visual."""
+    sub = f'<div class="chart-subtitle">{subtitulo}</div>' if subtitulo else ""
+    st.markdown(f'<div class="chart-title">{titulo}</div>{sub}', unsafe_allow_html=True)
+
+def insight(texto, tipo="info"):
+    """Destaca a principal leitura do grafico sem exigir conhecimento tecnico."""
+    st.markdown(
+        f'<div class="insight-box {tipo}"><strong>Leitura:</strong> {texto}</div>',
+        unsafe_allow_html=True,
+    )
+
 def show(fig):
-    st.pyplot(fig, use_container_width=True, clear_figure=False)
+    st.pyplot(fig, use_container_width=True, clear_figure=True)
     plt.close(fig)
 
 st.markdown("""<style>
@@ -98,7 +126,11 @@ html,body,[data-testid="stAppViewContainer"]{background:#0A0F1E!important;color:
 .sl{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#00C897;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.3rem}
 .st2{font-size:1.35rem;font-weight:700;color:#F1F5F9;margin:0 0 .4rem}
 .sd{font-size:.85rem;color:#64748B;margin-bottom:1rem}
-.chart-card{background:#111827;border:1px solid #1E293B;border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1.2rem}
+.chart-card{background:#111827;border:1px solid #1E293B;border-radius:14px;padding:1.25rem 1.4rem;margin-bottom:1.2rem;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.chart-title{font-size:.96rem;font-weight:700;color:#E2E8F0;margin-bottom:.2rem}
+.chart-subtitle{font-size:.76rem;color:#64748B;line-height:1.5;margin-bottom:.6rem}
+.insight-box{font-size:.78rem;line-height:1.55;color:#CBD5E1;background:#0F172A;border-left:3px solid #3B82F6;border-radius:8px;padding:.75rem .9rem;margin-top:.35rem}
+.insight-box.success{border-left-color:#00C897}.insight-box.warning{border-left-color:#F59E0B}.insight-box.danger{border-left-color:#EF4444}
 .fbar{background:#111827;border:1px solid #1E293B;border-radius:10px;padding:1rem 1.4rem;margin-bottom:1.2rem}
 [data-testid="stTabs"] button{font-size:.85rem!important;font-weight:500!important;color:#64748B!important}
 [data-testid="stTabs"] button[aria-selected="true"]{color:#00C897!important;border-bottom:2px solid #00C897!important;background:transparent!important}
@@ -163,7 +195,7 @@ if pagina == "Home":
         bars = ax.bar([2022,2023,2024], anos.values, color=[CORES_ANO[a] for a in [2022,2023,2024]], width=0.5)
         for b in bars:
             ax.text(b.get_x()+b.get_width()/2, b.get_height()+5, str(int(b.get_height())), ha="center", color="#F1F5F9", fontsize=11, fontweight="bold")
-        ax.set_xticks([2022,2023,2024]); ax.set_title("Crescimento da base por ano", fontsize=12)
+        ax.set_xticks([2022,2023,2024]); ax.set_title("A base atendida cresceu ao longo do periodo", fontsize=12)
         ax.set_ylim(0, anos.max()*1.15)
         estilo_fig(fig); show(fig)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -184,7 +216,7 @@ if pagina == "Home":
                 if v > 5:
                     ax.text(b.get_x()+b.get_width()/2, bottom[i]+v/2, f"{v:.0f}%", ha="center", va="center", color="white", fontsize=8, fontweight="bold")
             bottom += np.array(vals)
-        ax.set_xticks(anos_x); ax.set_ylim(0,118); ax.set_title("Distribuicao de Pedra por ano (%)", fontsize=12)
+        ax.set_xticks(anos_x); ax.set_ylim(0,108); ax.set_title("A composicao das Pedras mudou entre os anos", fontsize=12)
         ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.16), ncol=4, fontsize=8, framealpha=0, labelcolor=TEXTO)
         estilo_fig(fig); show(fig)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -197,7 +229,7 @@ if pagina == "Home":
                 marker="o", color=cor, linewidth=2.5, markersize=8, label=nm)
         for a in [2022,2023,2024]:
             ax.annotate(f"{medias.loc[a,col]:.2f}", (a, medias.loc[a,col]), textcoords="offset points", xytext=(0,10), ha="center", color=cor, fontsize=10, fontweight="bold")
-    ax.set_xticks([2022,2023,2024]); ax.set_ylim(5,10); ax.set_title("INDE, IDA e IEG medio por ano", fontsize=12)
+    ax.set_xticks([2022,2023,2024]); ax.set_ylim(5,10); ax.set_title("Evolucao dos principais indicadores", fontsize=12)
     ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9)
     estilo_fig(fig); show(fig)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -245,14 +277,18 @@ elif pagina == "Analise":
         with c1:
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             ic = df["IAN_Cat"].value_counts().reindex(["Severo","Moderado","Adequado"]).fillna(0)
+            pct_ic = ic.div(ic.sum()).mul(100)
             fig, ax = plt.subplots(figsize=(5,4))
-            wedges,_,autotexts = ax.pie(ic.values, labels=ic.index, autopct="%1.0f%%",
-                colors=[CORES_IAN[k] for k in ic.index], startangle=90,
-                wedgeprops=dict(width=0.55), pctdistance=0.75)
-            for t in autotexts: t.set_color("white"); t.set_fontsize(10)
-            for t in wedges: t.set_edgecolor(FUNDO)
-            ax.set_title("Distribuicao geral do IAN", fontsize=12)
-            estilo_fig(fig); show(fig)
+            bars = ax.barh(pct_ic.index, pct_ic.values,
+                           color=[CORES_IAN[k] for k in pct_ic.index], height=0.55)
+            for b, pct_val, qtd in zip(bars, pct_ic.values, ic.values):
+                ax.text(pct_val + 1, b.get_y() + b.get_height()/2,
+                        f"{pct_val:.1f}%  ({int(qtd)})", va="center",
+                        color="#F1F5F9", fontsize=9, fontweight="bold")
+            ax.set_xlim(0, max(100, pct_ic.max() * 1.25))
+            ax.set_xlabel("Percentual de alunos")
+            ax.set_title("A maior parte dos alunos esta em qual nivel de adequacao?", fontsize=11)
+            estilo_fig(fig, grid_axis="x"); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
@@ -466,11 +502,12 @@ elif pagina == "Analise":
         with c1:
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=(5,4))
-            vals = list(corrs.values()); labs = list(corrs.keys())
+            ordem_corr = sorted(corrs, key=corrs.get)
+            vals = [corrs[k] for k in ordem_corr]; labs = ordem_corr
             cores_bar = [ACCENT if v>=.5 else "#F59E0B" if v>=.3 else TEXTO for v in vals]
             bars = ax.barh(labs, vals, color=cores_bar, height=0.55)
             for b,v in zip(bars,vals): ax.text(v+0.01, b.get_y()+b.get_height()/2, f"{v:.2f}", va="center", color="#F1F5F9", fontsize=9)
-            ax.set_xlim(0,.9); ax.set_title("Correlacao com IPV", fontsize=12)
+            ax.set_xlim(0,.9); ax.set_xlabel("Coeficiente de correlacao"); ax.set_title("Indicadores mais associados ao IPV", fontsize=12)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
@@ -511,31 +548,28 @@ elif pagina == "Analise":
             cores_b = [ACCENT if v>=.6 else "#F59E0B" if v>=.4 else TEXTO for v in vals_s]
             bars = ax.barh(labs_s, vals_s, color=cores_b, height=0.55)
             for b,v in zip(bars,vals_s): ax.text(v+0.01, b.get_y()+b.get_height()/2, f"{v:.2f}", va="center", color="#F1F5F9", fontsize=9)
-            ax.set_xlim(0,1); ax.set_title("Correlacao com INDE", fontsize=12)
+            ax.set_xlim(0,1); ax.set_xlabel("Coeficiente de correlacao"); ax.set_title("Indicadores mais associados ao INDE", fontsize=12)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             cats_r = ["IAA","IEG","IPS","IDA","IPV","IAN"]
             df_rad = df[df["Pedra"].isin(ORDEM_PEDRA)][["Pedra"]+cats_r].dropna()
-            mp = df_rad.groupby("Pedra")[cats_r].mean()
-            n = len(cats_r)
-            angles = [i/n*2*np.pi for i in range(n)]+[0]
-            fig, ax = plt.subplots(figsize=(5,4), subplot_kw=dict(polar=True))
-            ax.set_facecolor(FUNDO); fig.patch.set_facecolor(FUNDO)
-            ax.set_theta_offset(np.pi/2); ax.set_theta_direction(-1)
-            ax.set_xticks(angles[:-1]); ax.set_xticklabels(cats_r, color=TEXTO, size=8)
-            ax.set_ylim(0,10); ax.set_yticks([2,4,6,8,10]); ax.set_yticklabels(["2","4","6","8","10"], color=TEXTO, size=7)
-            ax.grid(color=GRID, linewidth=0.5)
-            for p in ORDEM_PEDRA:
-                if p in mp.index:
-                    vals_r = [mp.loc[p,c] for c in cats_r]+[mp.loc[p,cats_r[0]]]
-                    ax.plot(angles, vals_r, color=CORES_PEDRA[p], linewidth=2, label=p)
-                    ax.fill(angles, vals_r, color=CORES_PEDRA[p], alpha=0.07)
-            ax.set_title("Perfil por Pedra", fontsize=12, color="#F1F5F9", pad=15, fontweight="bold")
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8, loc="upper right", bbox_to_anchor=(1.35,1.15))
-            fig.tight_layout()
-            show(fig)
+            mp = df_rad.groupby("Pedra")[cats_r].mean().reindex(ORDEM_PEDRA).dropna(how="all")
+            fig, ax = plt.subplots(figsize=(6,4))
+            im = ax.imshow(mp.values, cmap="YlGnBu", vmin=0, vmax=10, aspect="auto")
+            ax.set_xticks(range(len(cats_r))); ax.set_xticklabels(cats_r)
+            ax.set_yticks(range(len(mp.index))); ax.set_yticklabels(mp.index)
+            for i in range(len(mp.index)):
+                for j in range(len(cats_r)):
+                    valor = mp.iloc[i, j]
+                    ax.text(j, i, f"{valor:.1f}", ha="center", va="center",
+                            color="white" if valor >= 6.5 else "#0F172A",
+                            fontsize=9, fontweight="bold")
+            cbar = fig.colorbar(im, ax=ax, fraction=0.035, pad=0.03)
+            cbar.ax.tick_params(colors=TEXTO, labelsize=8)
+            ax.set_title("Comparacao objetiva do perfil medio por Pedra", fontsize=11)
+            estilo_fig(fig, grid_axis=None); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ── EFETIVIDADE ───────────────────────────────────────────────────────────
@@ -654,7 +688,7 @@ elif pagina == "Modelo":
         fig, ax = plt.subplots(figsize=(6,5))
         bars = ax.barh(feats, imps, color=cores_f, height=0.6)
         for b,v in zip(bars,imps): ax.text(v+0.002, b.get_y()+b.get_height()/2, f"{v:.3f}", va="center", color="#F1F5F9", fontsize=8)
-        ax.set_xlim(0,0.22); ax.set_title("Importancia das Features — XGBoost", fontsize=12)
+        ax.set_xlim(0,0.22); ax.set_xlabel("Importancia relativa"); ax.set_title("Quais variaveis mais influenciam o modelo?", fontsize=12)
         estilo_fig(fig); show(fig)
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown('<div class="chart-card"><div style="font-size:.88rem;font-weight:600;color:#CBD5E1;margin-bottom:.5rem">Como o risco e definido</div><div style="font-size:.82rem;color:#475569;line-height:1.7"><span style="color:#00C897">▸</span> Queda de INDE superior a <strong style="color:#F1F5F9">0.3 ponto</strong> no ano seguinte<br><span style="color:#00C897">▸</span> Piora no nivel de defasagem<br><br>Permite usar dados do ano atual para intervir antes que a queda aconteca.</div></div>', unsafe_allow_html=True)
@@ -689,23 +723,24 @@ elif pagina == "Avaliar Aluno":
         prob=modelo.predict_proba(entrada)[0][1]; pct=prob*100
         cg,cr = st.columns([1,1])
         with cg:
-            fig, ax = plt.subplots(figsize=(5,3), facecolor=FUNDO)
-            ax.set_facecolor(FUNDO); ax.axis("off")
-            for cor,(t0,t1) in zip([ACCENT,"#F59E0B","#EF4444"],[(0.67,1.0),(0.33,0.67),(0.0,0.33)]):
-                t = np.linspace(np.pi*t0, np.pi*t1, 100)
-                ax.plot(np.cos(t), np.sin(t), color=cor, linewidth=22, solid_capstyle="butt", alpha=0.85)
-            ang = np.pi*(1-prob)
-            ax.annotate("", xy=(0.58*np.cos(ang),0.58*np.sin(ang)), xytext=(0,0),
-                arrowprops=dict(arrowstyle="->",color="#F1F5F9",lw=3))
-            ax.add_patch(plt.Circle((0,0),0.06,color="#F1F5F9",zorder=5))
+            fig, ax = plt.subplots(figsize=(6,2.8), facecolor=FUNDO)
+            ax.set_facecolor(FUNDO)
+            ax.barh([0], [30], left=[0], color=ACCENT, height=0.35)
+            ax.barh([0], [20], left=[30], color="#F59E0B", height=0.35)
+            ax.barh([0], [50], left=[50], color="#EF4444", height=0.35)
+            ax.axvline(pct, color="#F8FAFC", linewidth=3)
+            ax.scatter([pct], [0], s=90, color="#F8FAFC", zorder=5)
             cor_p = "#EF4444" if prob>=.5 else "#F59E0B" if prob>=.3 else ACCENT
-            ax.text(0,-0.2,f"{pct:.1f}%",ha="center",va="center",fontsize=28,fontweight="bold",color=cor_p,fontfamily="monospace")
-            ax.text(0,-0.42,"probabilidade de risco",ha="center",fontsize=9,color=TEXTO)
-            patches=[mpatches.Patch(color=ACCENT,label="Baixo <30%"),mpatches.Patch(color="#F59E0B",label="Moderado 30-50%"),mpatches.Patch(color="#EF4444",label="Alto >50%")]
-            ax.legend(handles=patches,loc="lower center",ncol=3,fontsize=7,frameon=False,labelcolor=TEXTO)
-            ax.set_xlim(-1.15,1.15); ax.set_ylim(-0.55,1.15)
-            fig.tight_layout()
-            show(fig)
+            ax.text(pct, 0.38, f"{pct:.1f}%", ha="center", va="bottom",
+                    fontsize=24, fontweight="bold", color=cor_p, fontfamily="monospace")
+            ax.text(15, -0.35, "Baixo", ha="center", color=TEXTO, fontsize=8)
+            ax.text(40, -0.35, "Moderado", ha="center", color=TEXTO, fontsize=8)
+            ax.text(75, -0.35, "Alto", ha="center", color=TEXTO, fontsize=8)
+            ax.set_xlim(0,100); ax.set_ylim(-0.55,0.75)
+            ax.set_yticks([]); ax.set_xticks([0,30,50,100])
+            ax.xaxis.set_major_formatter(mticker.PercentFormatter())
+            ax.set_title("Probabilidade estimada de risco no proximo ciclo", fontsize=11)
+            estilo_fig(fig, grid_axis=None); show(fig)
         with cr:
             if prob>=.5:
                 st.markdown(f'<div class="risk-card ra"><div class="rt">Risco Alto — {pct:.1f}%</div><div class="rb2">Alta probabilidade de queda no proximo ciclo.</div><div class="rr"><strong style="color:#F87171">Acao:</strong> Acionar acompanhamento psicopedagogico imediato.</div></div>',unsafe_allow_html=True)
