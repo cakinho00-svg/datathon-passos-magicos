@@ -23,7 +23,7 @@ def carregar_modelo():
 
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv(os.path.join(BASE_DIR, "..", "data", "painel_pede_tratado.csv"))
+    df = pd.read_csv(os.path.join(BASE_DIR, "data", "painel_pede_tratado.csv"))
     df["Pedra"]  = df["Pedra"].replace({"Agata":"Agata","INCLUIR":None})
     df["Genero"] = df["Genero"].replace({"Menina":"Feminino","Menino":"Masculino"})
     df["IAN_Cat"]= df["IAN"].map({2.5:"Severo",5.0:"Moderado",10.0:"Adequado"})
@@ -100,7 +100,7 @@ hr{border-color:#1E293B!important}
 with st.sidebar:
     st.markdown('<div style="font-size:1.3rem;font-weight:800;color:#F1F5F9">Passos <span style="color:#00C897">Magicos</span></div>',unsafe_allow_html=True)
     st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:.65rem;color:#334155;margin-bottom:2rem">// DATATHON FIAP POSTECH FASE 5</div>',unsafe_allow_html=True)
-    pagina = st.radio("nav",["Home","Analise","Modelo","Avaliar Aluno","Lote"],label_visibility="collapsed")
+    pagina = st.radio("nav",["Home","Analise","Modelo","Avaliar Aluno"],label_visibility="collapsed")
     st.divider()
     st.markdown('<p style="font-size:.72rem;color:#334155;text-transform:uppercase">Base de dados</p>',unsafe_allow_html=True)
     st.markdown('<p style="font-size:.82rem;color:#475569">PEDE 2022 2023 2024</p>',unsafe_allow_html=True)
@@ -240,7 +240,7 @@ elif pagina == "Analise":
             fig=go.Figure(go.Scatter(x=ida["Ano_Referencia"],y=ida["IDA"].round(2),mode="lines+markers+text",
                 line=dict(color="#7C3AED",width=3),marker=dict(size=10),
                 text=ida["IDA"].round(2),textposition="top center",textfont=dict(color="#A78BFA",size=13)))
-            pl(fig,title="IDA medio por ano",yaxis=dict(range=[0,10],gridcolor="#1E293B",linecolor="#1E293B",tickfont=dict(color="#64748B")))
+            pl(fig,title="IDA medio por ano",xaxis=dict(tickvals=[2022,2023,2024],ticktext=["2022","2023","2024"],gridcolor="#1E293B",linecolor="#1E293B",tickfont=dict(color="#64748B")),yaxis=dict(range=[0,10],gridcolor="#1E293B",linecolor="#1E293B",tickfont=dict(color="#64748B")))
             st.markdown('<div class="chart-card">',unsafe_allow_html=True); st.plotly_chart(fig,use_container_width=True); st.markdown("</div>",unsafe_allow_html=True)
         with c2:
             df_f=df[df["Fase_Num"].between(0,8)&df["IDA"].notna()]
@@ -490,14 +490,24 @@ elif pagina == "Avaliar Aluno":
         prob=modelo.predict_proba(entrada)[0][1]; pct=prob*100
         cg,cr=st.columns([1,1])
         with cg:
-            fig_g=go.Figure(go.Indicator(mode="gauge+number",value=pct,
-                number={"suffix":"%","font":{"size":36,"color":"#F1F5F9","family":"JetBrains Mono"}},
-                gauge={"axis":{"range":[0,100],"tickwidth":1,"tickcolor":"#1E293B","tickfont":{"color":"#64748B"}},
-                       "bar":{"color":"#F1F5F9","thickness":.25},"bgcolor":"rgba(0,0,0,0)","borderwidth":0,
-                       "steps":[{"range":[0,30],"color":"rgba(0,200,151,.2)"},{"range":[30,50],"color":"rgba(245,158,11,.2)"},{"range":[50,100],"color":"rgba(239,68,68,.2)"}],
-                       "threshold":{"line":{"color":"#EF4444" if prob>=.5 else "#F59E0B" if prob>=.3 else "#00C897","width":4},"thickness":.85,"value":pct}},
-                title={"text":"Probabilidade de Risco","font":{"color":"#94A3B8","size":13}}))
-            pl(fig_g,height=280); st.plotly_chart(fig_g,use_container_width=True)
+            import matplotlib.pyplot as plt
+            import matplotlib.patches as mpatches
+            fig_g, ax = plt.subplots(figsize=(5,2.8), facecolor="#111827")
+            ax.set_facecolor("#111827"); ax.axis("off")
+            for cor,(t0,t1) in zip(["#00C897","#F59E0B","#EF4444"],[(0.67,1.0),(0.33,0.67),(0.0,0.33)]):
+                t = __import__("numpy").linspace(__import__("numpy").pi*t0, __import__("numpy").pi*t1, 100)
+                ax.plot(__import__("numpy").cos(t), __import__("numpy").sin(t), color=cor, linewidth=20, solid_capstyle="butt", alpha=0.85)
+            angulo = __import__("numpy").pi*(1-prob)
+            ax.annotate("",xy=(0.58*__import__("numpy").cos(angulo),0.58*__import__("numpy").sin(angulo)),xytext=(0,0),
+                arrowprops=dict(arrowstyle="->",color="#F1F5F9",lw=3))
+            ax.add_patch(plt.Circle((0,0),0.06,color="#F1F5F9",zorder=5))
+            cor_p="#EF4444" if prob>=.5 else "#F59E0B" if prob>=.3 else "#00C897"
+            ax.text(0,-0.2,f"{pct:.1f}%",ha="center",va="center",fontsize=26,fontweight="bold",color=cor_p,fontfamily="monospace")
+            ax.text(0,-0.42,"probabilidade de risco",ha="center",fontsize=9,color="#64748B")
+            patches=[mpatches.Patch(color="#00C897",label="Baixo <30%"),mpatches.Patch(color="#F59E0B",label="Moderado 30-50%"),mpatches.Patch(color="#EF4444",label="Alto >50%")]
+            ax.legend(handles=patches,loc="lower center",ncol=3,fontsize=7,frameon=False,labelcolor="#94A3B8")
+            ax.set_xlim(-1.15,1.15); ax.set_ylim(-0.55,1.15)
+            st.pyplot(fig_g,use_container_width=True); plt.close()
         with cr:
             if prob>=.5:
                 st.markdown(f'<div class="risk-card ra"><div class="rt">Risco Alto {pct:.1f}%</div><div class="rb2">Alta probabilidade de queda no proximo ciclo.</div><div class="rr"><strong style="color:#F87171">Acao:</strong> Acionar acompanhamento psicopedagogico imediato.</div></div>',unsafe_allow_html=True)
@@ -508,36 +518,3 @@ elif pagina == "Avaliar Aluno":
             st.markdown("<br>",unsafe_allow_html=True)
             rs=pd.DataFrame({"Indicador":["INDE","IDA","IEG","IAA","IPS","IPV","IAN","IPP"],"Valor":[f"{v:.1f}" for v in [INDE,IDA,IEG,IAA,IPS,IPV,IAN,IPP]]})
             st.dataframe(rs,hide_index=True,use_container_width=True)
-
-# ═══ PAGINA 5: LOTE ═══════════════════════════════════════════════════════════
-elif pagina == "Lote":
-    st.markdown('<div class="sl">// Processamento em massa</div><h1 class="st2">Avaliacao em Lote</h1><p class="sd">Upload de CSV com multiplos alunos para calcular risco de toda a turma.</p>',unsafe_allow_html=True)
-    st.markdown('<div class="chart-card"><div style="font-size:.88rem;font-weight:600;color:#CBD5E1;margin-bottom:.3rem">Colunas obrigatorias</div><div style="font-family:JetBrains Mono,monospace;font-size:.78rem;color:#00C897">RA · INDE · IAA · IEG · IPS · IDA · IPV · IAN · IPP · Defasagem · Fase_Num · Ano_Ingresso · Ano_Referencia · Idade</div></div>',unsafe_allow_html=True)
-    arq=st.file_uploader("Selecione o CSV",type=["csv"])
-    if arq:
-        try:
-            dl=pd.read_csv(arq)
-            dl["Anos_no_Programa"]=dl["Ano_Referencia"]-dl["Ano_Ingresso"]
-            dl["Media_Comportamental"]=dl[["IAA","IEG","IPS"]].mean(axis=1)
-            dl["Media_Academica"]=dl[["IDA","IPV","IPP"]].mean(axis=1)
-            dl["Gap_Auto_Real"]=dl["IAA"]-dl["IDA"]
-            probs=modelo.predict_proba(dl[FEATURES])[:,1]
-            dl["Prob_Risco_%"]=(probs*100).round(1)
-            dl["Classificacao"]=pd.cut(probs,bins=[-0.01,.30,.50,1.01],labels=["Baixo","Moderado","Alto"])
-            na=int((probs>=.5).sum()); nm=int(((probs>=.3)&(probs<.5)).sum()); nb=int((probs<.3).sum()); nt=len(dl)
-            st.markdown(f'<div class="kpi-row" style="margin-top:1.5rem"><div class="kpi-card b"><div class="kpi-label">Total</div><div class="kpi-value">{nt}</div></div><div class="kpi-card g"><div class="kpi-label">Baixo risco</div><div class="kpi-value g">{nb}</div><div class="kpi-delta">{nb/nt:.1%}</div></div><div class="kpi-card a"><div class="kpi-label">Risco moderado</div><div class="kpi-value a">{nm}</div><div class="kpi-delta">{nm/nt:.1%}</div></div><div class="kpi-card r"><div class="kpi-label">Alto risco</div><div class="kpi-value r">{na}</div><div class="kpi-delta">{na/nt:.1%}</div></div></div>',unsafe_allow_html=True)
-            c1,c2=st.columns([1,2])
-            with c1:
-                fp=px.pie(names=["Baixo","Moderado","Alto"],values=[nb,nm,na],hole=.55,
-                          color_discrete_sequence=["#00C897","#F59E0B","#EF4444"],title="Distribuicao do risco")
-                pl(fp); st.plotly_chart(fp,use_container_width=True)
-            with c2:
-                fh=px.histogram(dl,x="Prob_Risco_%",nbins=20,title="Distribuicao das probabilidades",color_discrete_sequence=["#7C3AED"])
-                fh.add_vline(x=30,line_dash="dash",line_color="#F59E0B",annotation_text="30% alerta",annotation_font_color="#F59E0B")
-                fh.add_vline(x=50,line_dash="dash",line_color="#EF4444",annotation_text="50% alto risco",annotation_font_color="#EF4444")
-                pl(fh,showlegend=False); st.plotly_chart(fh,use_container_width=True)
-            cols=["RA","Fase_Num","INDE","IDA","IEG","Prob_Risco_%","Classificacao"] if "RA" in dl.columns else ["Fase_Num","INDE","IDA","IEG","Prob_Risco_%","Classificacao"]
-            st.dataframe(dl[cols].sort_values("Prob_Risco_%",ascending=False),hide_index=True,use_container_width=True)
-            st.download_button("Baixar resultado CSV",data=dl.to_csv(index=False).encode("utf-8-sig"),file_name="risco_passos_magicos.csv",mime="text/csv")
-        except Exception as e:
-            st.error(f"Erro: {e}"); st.info("Verifique se todas as colunas obrigatorias estao presentes.")
