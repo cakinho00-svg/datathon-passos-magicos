@@ -23,7 +23,7 @@ def carregar_modelo():
 
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv(os.path.join(BASE_DIR, "data", "painel_pede_tratado.csv"))
+    df = pd.read_csv(os.path.join(BASE_DIR, "..", "data", "painel_pede_tratado.csv"))
     df["Pedra"]  = df["Pedra"].replace({"Agata":"Agata","INCLUIR":None})
     df["Genero"] = df["Genero"].replace({"Menina":"Feminino","Menino":"Masculino"})
     df["IAN_Cat"]= df["IAN"].map({2.5:"Severo",5.0:"Moderado",10.0:"Adequado"})
