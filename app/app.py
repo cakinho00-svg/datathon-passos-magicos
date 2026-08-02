@@ -15,6 +15,8 @@ import matplotlib.ticker as mticker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+APP_VERSION = "2026-08-02-layout-estavel-v3"
+
 st.set_page_config(page_title="Passos Magicos Analytics", page_icon="📊",
                    layout="wide", initial_sidebar_state="expanded")
 
@@ -60,9 +62,16 @@ GRID    = "#1E293B"
 ACCENT  = "#00C897"
 
 def estilo_fig(fig, ax_list=None, grid_axis="y"):
-    """Padroniza todos os graficos para uma leitura limpa e consistente."""
+    """Finaliza a figura com estilo consistente e evita colisao entre titulo e legenda.
+
+    A funcao usa apenas APIs publicas do Matplotlib. Legendas posicionadas acima
+    do eixo sao reorganizadas automaticamente e recebem uma faixa exclusiva.
+    """
     fig.patch.set_facecolor(FUNDO)
-    axes = ax_list if ax_list else [fig.gca()]
+    axes = list(ax_list) if ax_list is not None else list(fig.axes)
+    axes = [ax for ax in axes if hasattr(ax, "spines")]
+    possui_legenda_externa = False
+
     for ax in axes:
         ax.set_facecolor(FUNDO)
         ax.tick_params(colors=TEXTO, labelsize=9, length=0)
@@ -70,19 +79,95 @@ def estilo_fig(fig, ax_list=None, grid_axis="y"):
         ax.yaxis.label.set_color(TEXTO)
         ax.xaxis.label.set_fontsize(9)
         ax.yaxis.label.set_fontsize(9)
-        ax.title.set_color("#F8FAFC")
-        ax.title.set_fontsize(12)
-        ax.title.set_fontweight("bold")
-        ax.title.set_pad(14)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.spines["left"].set_color(GRID)
-        ax.spines["bottom"].set_color(GRID)
+
+        # set_title(..., pad=...) e uma API publica e compativel.
+        titulo = ax.get_title()
+        if titulo:
+            ax.set_title(
+                titulo,
+                color="#F8FAFC",
+                fontsize=12,
+                fontweight="bold",
+                pad=10,
+            )
+
+        for lado in ("top", "right"):
+            if lado in ax.spines:
+                ax.spines[lado].set_visible(False)
+        for lado in ("left", "bottom"):
+            if lado in ax.spines:
+                ax.spines[lado].set_color(GRID)
+
         ax.set_axisbelow(True)
         ax.grid(False)
-        if grid_axis:
+        if grid_axis and getattr(ax, "name", "rectilinear") != "polar":
             ax.grid(axis=grid_axis, color=GRID, linewidth=0.7, alpha=0.75)
-    fig.tight_layout(pad=1.4)
+
+        legenda = ax.get_legend()
+        if legenda is not None:
+            # Detecta legendas que foram colocadas fora/acima da area do eixo.
+            bbox = legenda.get_bbox_to_anchor()
+            bbox_ax = bbox.transformed(ax.transAxes.inverted())
+            y_base = bbox_ax.y0
+            loc = getattr(legenda, "_loc", None)
+            externa = y_base >= 1.0 or loc in (8, 9)
+
+            if externa:
+                possui_legenda_externa = True
+                handles, labels = ax.get_legend_handles_labels()
+                ncol = getattr(legenda, "_ncols", 1)
+                legenda.remove()
+                ax.legend(
+                    handles,
+                    labels,
+                    loc="lower center",
+                    bbox_to_anchor=(0.5, 1.22),
+                    ncol=max(1, ncol),
+                    frameon=False,
+                    fontsize=8,
+                    labelcolor=TEXTO,
+                    handlelength=2.0,
+                    handletextpad=0.55,
+                    columnspacing=1.2,
+                    borderaxespad=0.0,
+                )
+            else:
+                legenda.get_frame().set_facecolor(FUNDO)
+                legenda.get_frame().set_edgecolor(GRID)
+                for texto in legenda.get_texts():
+                    texto.set_color(TEXTO)
+
+    # Reserva mais espaco apenas quando existe legenda acima do grafico.
+    topo = 0.76 if possui_legenda_externa else 0.92
+    try:
+        fig.tight_layout(rect=(0.02, 0.02, 0.98, topo), pad=1.2)
+    except (ValueError, RuntimeError):
+        fig.subplots_adjust(top=topo, bottom=0.12, left=0.10, right=0.97)
+    return fig
+
+def legenda_superior(ax, ncol=3, y=1.24, fontsize=8):
+    """Posiciona a legenda acima do titulo, sem sobrepor o conteudo."""
+    handles, labels = ax.get_legend_handles_labels()
+    if not handles:
+        return None
+    return ax.legend(
+        handles,
+        labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, y),
+        ncol=ncol,
+        frameon=False,
+        fontsize=fontsize,
+        labelcolor=TEXTO,
+        handlelength=2.2,
+        handletextpad=0.6,
+        columnspacing=1.4,
+        borderaxespad=0.0,
+    )
+
+def ajustar_area_superior(fig, top=0.76):
+    """Reserva espaco para titulo e legenda fora da area de plotagem."""
+    fig.subplots_adjust(top=top)
     return fig
 
 def titulo_grafico(titulo, subtitulo=None):
@@ -162,6 +247,7 @@ with st.sidebar:
     st.markdown('<p style="font-size:.82rem;color:#475569">XGBoost AUC 0.795</p>', unsafe_allow_html=True)
     st.markdown(f'<p style="font-size:.72rem;color:#334155;margin-top:.8rem;text-transform:uppercase">Registros</p>', unsafe_allow_html=True)
     st.markdown(f'<p style="font-size:.82rem;color:#475569">{len(df_full):,} alunos-ano</p>', unsafe_allow_html=True)
+    st.caption(f"Versão: {APP_VERSION}")
 
 # ═══ HOME ═════════════════════════════════════════════════════════════════════
 if pagina == "Home":
@@ -578,7 +664,7 @@ elif pagina == "Analise":
         c1,c2 = st.columns(2)
         with c1:
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-            fig, ax = plt.subplots(figsize=(5,3.5))
+            fig, ax = plt.subplots(figsize=(5.8,4.25))
             df_f2 = df[df["Fase_Num"].between(0,8)]
             fases_u = sorted(df_f2["Fase_Num"].unique())
             fl = ["ALFA" if f==0 else f"F{int(f)}" for f in fases_u]
@@ -586,24 +672,32 @@ elif pagina == "Analise":
                 if a in df_f2["Ano_Referencia"].values:
                     vals = [df_f2[(df_f2["Ano_Referencia"]==a)&(df_f2["Fase_Num"]==f)]["INDE"].mean() for f in fases_u]
                     ax.plot(fl, vals, marker="o", color=cor, linewidth=2, markersize=6, label=str(a))
-            ax.set_ylim(4,10.8); ax.set_title("INDE medio por Fase e Ano", fontsize=12)
-            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.16), ncol=3, framealpha=0, labelcolor=TEXTO, fontsize=8)
+            ax.set_ylim(4,10.8)
+            ax.set_ylabel("INDE medio (0 a 10)")
+            ax.set_title("INDE medio por Fase e Ano", fontsize=12, pad=16)
             plt.setp(ax.get_xticklabels(), rotation=30, ha="right", fontsize=9)
-            estilo_fig(fig); show(fig)
+            estilo_fig(fig)
+            legenda_superior(ax, ncol=3, y=1.22, fontsize=8)
+            ajustar_area_superior(fig, top=0.72)
+            show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             anos_x = sorted(df["Ano_Referencia"].unique())
-            fig, ax = plt.subplots(figsize=(5,3.5))
+            fig, ax = plt.subplots(figsize=(5.8,4.25))
             bottom = np.zeros(len(anos_x))
             df_ef = df[df["Pedra"].isin(ORDEM_PEDRA)]
             for p in ORDEM_PEDRA:
                 vals = [df_ef[(df_ef["Ano_Referencia"]==a)&(df_ef["Pedra"]==p)].shape[0] for a in anos_x]
                 bars = ax.bar(anos_x, vals, bottom=bottom, color=CORES_PEDRA[p], label=p, width=0.5)
                 bottom += np.array(vals)
-            ax.set_xticks(anos_x); ax.set_title("Volume por Pedra e Ano", fontsize=12)
-            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.14), ncol=4, framealpha=0, labelcolor=TEXTO, fontsize=8)
-            estilo_fig(fig); show(fig)
+            ax.set_xticks(anos_x)
+            ax.set_ylabel("Quantidade")
+            ax.set_title("Volume por Pedra e Ano", fontsize=12, pad=16)
+            estilo_fig(fig)
+            legenda_superior(ax, ncol=4, y=1.22, fontsize=8)
+            ajustar_area_superior(fig, top=0.72)
+            show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
         anos_x = sorted(df["Ano_Referencia"].unique())
@@ -624,14 +718,19 @@ elif pagina == "Analise":
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             dg2 = df[df["Genero"].isin(["Feminino","Masculino"])&df["INDE"].notna()]
             anos_x = sorted(dg2["Ano_Referencia"].unique())
-            fig, ax = plt.subplots(figsize=(5,3.5))
+            fig, ax = plt.subplots(figsize=(6.2,4.25))
             for gen, cor in [("Feminino","#F59E0B"),("Masculino","#3B82F6")]:
                 vals = [dg2[(dg2["Ano_Referencia"]==a)&(dg2["Genero"]==gen)]["INDE"].mean() for a in anos_x]
                 ax.plot(anos_x, vals, marker="o", color=cor, linewidth=2.5, markersize=8, label=gen)
                 for a,v in zip(anos_x,vals): ax.annotate(f"{v:.2f}", (a,v), textcoords="offset points", xytext=(0,9), ha="center", color=cor, fontsize=9)
-            ax.set_xticks(anos_x); ax.set_ylim(5,10.5); ax.set_title("INDE medio por Genero e Ano", fontsize=12)
-            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.14), ncol=2, framealpha=0, labelcolor=TEXTO, fontsize=9)
-            estilo_fig(fig); show(fig)
+            ax.set_xticks(anos_x)
+            ax.set_ylim(5,10.5)
+            ax.set_ylabel("INDE medio (0 a 10)")
+            ax.set_title("INDE medio por Genero e Ano", fontsize=12, pad=16)
+            estilo_fig(fig)
+            legenda_superior(ax, ncol=2, y=1.22, fontsize=9)
+            ajustar_area_superior(fig, top=0.72)
+            show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
