@@ -267,14 +267,18 @@ elif pagina == "Analise":
         with c1:
             r=dsc["IEG"].corr(dsc["IDA"])
             fig=px.scatter(dsc,x="IEG",y="IDA",color="Ano_Referencia",color_discrete_map=CORES_ANO,opacity=.4,
-                           trendline="ols",trendline_scope="overall",trendline_color_override="#F1F5F9",
                            title=f"IEG vs IDA (r={r:.2f})",labels={"Ano_Referencia":"Ano"})
+            _x=dsc["IEG"].dropna(); _y=dsc["IDA"].dropna(); _m,_b=np.polyfit(_x,_y,1)
+            _xl=np.linspace(_x.min(),_x.max(),100)
+            fig.add_trace(go.Scatter(x=_xl,y=_m*_xl+_b,mode="lines",line=dict(color="#F1F5F9",width=2),showlegend=False,name="Tendencia"))
             pl(fig); st.markdown('<div class="chart-card">',unsafe_allow_html=True); st.plotly_chart(fig,use_container_width=True); st.markdown("</div>",unsafe_allow_html=True)
         with c2:
             r2=dsc["IEG"].corr(dsc["IPV"])
             fig2=px.scatter(dsc,x="IEG",y="IPV",color="Ano_Referencia",color_discrete_map=CORES_ANO,opacity=.4,
-                            trendline="ols",trendline_scope="overall",trendline_color_override="#F1F5F9",
                             title=f"IEG vs IPV (r={r2:.2f})",labels={"Ano_Referencia":"Ano"})
+            _x2=dsc["IEG"].dropna(); _y2=dsc["IPV"].dropna(); _m2,_b2=np.polyfit(_x2,_y2,1)
+            _xl2=np.linspace(_x2.min(),_x2.max(),100)
+            fig2.add_trace(go.Scatter(x=_xl2,y=_m2*_xl2+_b2,mode="lines",line=dict(color="#F1F5F9",width=2),showlegend=False,name="Tendencia"))
             pl(fig2); st.markdown('<div class="chart-card">',unsafe_allow_html=True); st.plotly_chart(fig2,use_container_width=True); st.markdown("</div>",unsafe_allow_html=True)
         ieg_f=df[df["Fase_Num"].between(0,8)].groupby("Fase_Num")["IEG"].mean().reset_index()
         ieg_f["FL"]=ieg_f["Fase_Num"].apply(lambda x:"ALFA" if x==0 else f"Fase {int(x)}")
@@ -290,8 +294,10 @@ elif pagina == "Analise":
         with c1:
             r=di["IAA"].corr(di["IDA"])
             fig=px.scatter(di,x="IAA",y="IDA",color="Ano_Referencia",color_discrete_map=CORES_ANO,opacity=.4,
-                           trendline="ols",trendline_scope="overall",trendline_color_override="#F1F5F9",
                            title=f"IAA vs IDA (r={r:.2f}) - Correlacao fraca",labels={"Ano_Referencia":"Ano"})
+            _xi=di["IAA"].dropna(); _yi=di["IDA"].dropna(); _mi,_bi=np.polyfit(_xi,_yi,1)
+            _xli=np.linspace(_xi.min(),_xi.max(),100)
+            fig.add_trace(go.Scatter(x=_xli,y=_mi*_xli+_bi,mode="lines",line=dict(color="#F1F5F9",width=2),showlegend=False,name="Tendencia"))
             pl(fig); st.markdown('<div class="chart-card">',unsafe_allow_html=True); st.plotly_chart(fig,use_container_width=True); st.markdown("</div>",unsafe_allow_html=True)
         with c2:
             dg=df[["IAA","IDA"]].dropna().copy(); dg["Gap"]=dg["IAA"]-dg["IDA"]
@@ -314,8 +320,10 @@ elif pagina == "Analise":
         with c2:
             ds=df[["IPS","IDA","Ano_Referencia"]].dropna(); r=ds["IPS"].corr(ds["IDA"])
             fig2=px.scatter(ds,x="IPS",y="IDA",color="Ano_Referencia",color_discrete_map=CORES_ANO,opacity=.4,
-                            trendline="ols",trendline_scope="overall",trendline_color_override="#F1F5F9",
                             title=f"IPS vs IDA (r={r:.2f})",labels={"Ano_Referencia":"Ano"})
+            _xps=ds["IPS"].dropna(); _yps=ds["IDA"].dropna(); _mps,_bps=np.polyfit(_xps,_yps,1)
+            _xlps=np.linspace(_xps.min(),_xps.max(),100)
+            fig2.add_trace(go.Scatter(x=_xlps,y=_mps*_xlps+_bps,mode="lines",line=dict(color="#F1F5F9",width=2),showlegend=False,name="Tendencia"))
             pl(fig2); st.markdown('<div class="chart-card">',unsafe_allow_html=True); st.plotly_chart(fig2,use_container_width=True); st.markdown("</div>",unsafe_allow_html=True)
 
     with tabs[5]:
@@ -329,8 +337,10 @@ elif pagina == "Analise":
         with c2:
             r=di["IAN"].corr(di["IPP"])
             fig2=px.scatter(di,x="IAN",y="IPP",color="Ano_Referencia",color_discrete_map=CORES_ANO,opacity=.5,
-                            trendline="ols",trendline_scope="overall",trendline_color_override="#F1F5F9",
                             title=f"IPP vs IAN (r={r:.2f})",labels={"Ano_Referencia":"Ano"})
+            _xpp=di["IAN"].dropna(); _ypp=di["IPP"].dropna(); _mpp,_bpp=np.polyfit(_xpp,_ypp,1)
+            _xlpp=np.linspace(_xpp.min(),_xpp.max(),100)
+            fig2.add_trace(go.Scatter(x=_xlpp,y=_mpp*_xlpp+_bpp,mode="lines",line=dict(color="#F1F5F9",width=2),showlegend=False,name="Tendencia"))
             pl(fig2); st.markdown('<div class="chart-card">',unsafe_allow_html=True); st.plotly_chart(fig2,use_container_width=True); st.markdown("</div>",unsafe_allow_html=True)
 
     with tabs[6]:
