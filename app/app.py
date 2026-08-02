@@ -245,8 +245,6 @@ with st.sidebar:
     st.markdown('<p style="font-size:.82rem;color:#475569">PEDE 2022 2023 2024</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-size:.72rem;color:#334155;margin-top:.8rem;text-transform:uppercase">Modelo</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-size:.82rem;color:#475569">XGBoost AUC 0.795</p>', unsafe_allow_html=True)
-    st.markdown(f'<p style="font-size:.72rem;color:#334155;margin-top:.8rem;text-transform:uppercase">Registros</p>', unsafe_allow_html=True)
-    st.markdown(f'<p style="font-size:.82rem;color:#475569">{len(df_full):,} alunos-ano</p>', unsafe_allow_html=True)
     st.caption(f"Versão: {APP_VERSION}")
 
 # ═══ HOME ═════════════════════════════════════════════════════════════════════
