@@ -55,17 +55,22 @@ def estilo_fig(fig, ax_list=None):
     axes = ax_list if ax_list else [fig.gca()]
     for ax in axes:
         ax.set_facecolor(FUNDO)
-        ax.tick_params(colors=TEXTO, labelsize=9)
+        ax.tick_params(colors=TEXTO, labelsize=10)
         ax.xaxis.label.set_color(TEXTO)
         ax.yaxis.label.set_color(TEXTO)
+        ax.xaxis.label.set_fontsize(10)
+        ax.yaxis.label.set_fontsize(10)
         ax.title.set_color("#F1F5F9")
+        ax.title.set_fontsize(12)
+        ax.title.set_fontweight("bold")
         for spine in ax.spines.values():
             spine.set_edgecolor(GRID)
-        ax.grid(color=GRID, linewidth=0.5)
+        ax.grid(color=GRID, linewidth=0.5, alpha=0.6)
+    fig.tight_layout()
     return fig
 
 def show(fig):
-    st.pyplot(fig, use_container_width=True)
+    st.pyplot(fig, use_container_width=True, clear_figure=False)
     plt.close(fig)
 
 st.markdown("""<style>
@@ -179,8 +184,8 @@ if pagina == "Home":
                 if v > 5:
                     ax.text(b.get_x()+b.get_width()/2, bottom[i]+v/2, f"{v:.0f}%", ha="center", va="center", color="white", fontsize=8, fontweight="bold")
             bottom += np.array(vals)
-        ax.set_xticks(anos_x); ax.set_ylim(0,110); ax.set_title("Distribuicao de Pedra por ano (%)", fontsize=12)
-        ax.legend(loc="upper left", fontsize=8, framealpha=0, labelcolor=TEXTO)
+        ax.set_xticks(anos_x); ax.set_ylim(0,118); ax.set_title("Distribuicao de Pedra por ano (%)", fontsize=12)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.16), ncol=4, fontsize=8, framealpha=0, labelcolor=TEXTO)
         estilo_fig(fig); show(fig)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -263,8 +268,8 @@ elif pagina == "Analise":
                 for b,v,bt in zip(bars,vals,bottom):
                     if v>4: ax.text(b.get_x()+b.get_width()/2, bt+v/2, f"{v:.0f}%", ha="center", va="center", color="white", fontsize=9, fontweight="bold")
                 bottom += np.array(vals)
-            ax.set_xticks(anos_x); ax.set_ylim(0,115); ax.set_title("IAN por ano (%)", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9)
+            ax.set_xticks(anos_x); ax.set_ylim(0,120); ax.set_title("IAN por ano (%)", fontsize=12)
+            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.14), ncol=3, framealpha=0, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         c1,c2,c3 = st.columns(3)
@@ -296,16 +301,18 @@ elif pagina == "Analise":
                 if a in df_f["Ano_Referencia"].values:
                     vals = [df_f[(df_f["Ano_Referencia"]==a)&(df_f["Fase_Num"]==f)]["IDA"].mean() for f in fases_x]
                     ax.plot(flabels, vals, marker="o", color=cor, linewidth=2, markersize=6, label=str(a))
-            ax.set_ylim(0,10); ax.set_title("IDA por Fase e Ano", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9)
-            plt.xticks(rotation=30, ha="right")
+            ax.set_ylim(0,10.8); ax.set_title("IDA por Fase e Ano", fontsize=12)
+            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.16), ncol=3, framealpha=0, labelcolor=TEXTO, fontsize=8)
+            plt.setp(ax.get_xticklabels(), rotation=30, ha="right", fontsize=9)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
         df_bx = df[df["Pedra"].isin(ORDEM_PEDRA)&df["IDA"].notna()]
         fig, ax = plt.subplots(figsize=(8,3.5))
         data_box = [df_bx[df_bx["Pedra"]==p]["IDA"].dropna().values for p in ORDEM_PEDRA]
-        bp = ax.boxplot(data_box, patch_artist=True, labels=ORDEM_PEDRA, widths=0.5)
+        bp = ax.boxplot(data_box, patch_artist=True, widths=0.5)
+        ax.set_xticks(range(1, len(ORDEM_PEDRA)+1))
+        ax.set_xticklabels(ORDEM_PEDRA, fontsize=10)
         for patch, p in zip(bp["boxes"], ORDEM_PEDRA): patch.set_facecolor(CORES_PEDRA[p]); patch.set_alpha(0.8)
         for elem in ["whiskers","caps","medians","fliers"]:
             for item in bp[elem]: item.set_color(TEXTO)
@@ -329,7 +336,7 @@ elif pagina == "Analise":
             xl = np.linspace(dsc["IEG"].min(),dsc["IEG"].max(),100)
             ax.plot(xl,m*xl+b,"--",color="#F1F5F9",linewidth=1.5,label=f"Tendencia")
             ax.set_xlabel("IEG"); ax.set_ylabel("IDA"); ax.set_title(f"IEG vs IDA  (r={r:.2f})", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8)
+            ax.legend(loc="upper left", framealpha=0.15, facecolor=FUNDO, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
@@ -342,7 +349,7 @@ elif pagina == "Analise":
             m,b = np.polyfit(dsc["IEG"],dsc["IPV"],1)
             ax.plot(xl,m*xl+b,"--",color="#F1F5F9",linewidth=1.5)
             ax.set_xlabel("IEG"); ax.set_ylabel("IPV"); ax.set_title(f"IEG vs IPV  (r={r2:.2f})", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8)
+            ax.legend(loc="upper left", framealpha=0.15, facecolor=FUNDO, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
@@ -372,7 +379,7 @@ elif pagina == "Analise":
             xl = np.linspace(di["IAA"].min(),di["IAA"].max(),100)
             ax.plot(xl,m*xl+b,"--",color="#F1F5F9",linewidth=1.5)
             ax.set_xlabel("IAA"); ax.set_ylabel("IDA"); ax.set_title(f"IAA vs IDA  (r={r:.2f}) — Correlacao fraca", fontsize=11)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8)
+            ax.legend(loc="upper left", framealpha=0.15, facecolor=FUNDO, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
@@ -383,7 +390,7 @@ elif pagina == "Analise":
             ax.axvline(0, color="#F1F5F9", linestyle="--", linewidth=1.2, label="Sem gap")
             ax.axvline(dg["Gap"].mean(), color="#F59E0B", linestyle=":", linewidth=1.5, label=f"Media:{dg['Gap'].mean():.1f}")
             ax.set_xlabel("Gap (IAA - IDA)"); ax.set_title("Gap Autopercep. vs Realidade", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8)
+            ax.legend(loc="upper right", framealpha=0.15, facecolor=FUNDO, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -412,7 +419,7 @@ elif pagina == "Analise":
             xl = np.linspace(ds["IPS"].min(),ds["IPS"].max(),100)
             ax.plot(xl,m*xl+b,"--",color="#F1F5F9",linewidth=1.5)
             ax.set_xlabel("IPS"); ax.set_ylabel("IDA"); ax.set_title(f"IPS vs IDA  (r={r:.2f})", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8)
+            ax.legend(loc="upper left", framealpha=0.15, facecolor=FUNDO, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -425,7 +432,9 @@ elif pagina == "Analise":
             st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=(5,4))
             data_box = [di[di["IAN_Cat"]==cat]["IPP"].dropna().values for cat in ["Severo","Moderado","Adequado"]]
-            bp = ax.boxplot(data_box, patch_artist=True, labels=["Severo","Moderado","Adequado"], widths=0.5)
+            bp = ax.boxplot(data_box, patch_artist=True, widths=0.5)
+            ax.set_xticks([1,2,3])
+            ax.set_xticklabels(["Severo","Moderado","Adequado"], fontsize=10)
             for patch,cat in zip(bp["boxes"],["Severo","Moderado","Adequado"]): patch.set_facecolor(CORES_IAN[cat]); patch.set_alpha(0.8)
             for elem in ["whiskers","caps","medians"]:
                 for item in bp[elem]: item.set_color(TEXTO)
@@ -443,7 +452,7 @@ elif pagina == "Analise":
             xl = np.linspace(di["IAN"].min(),di["IAN"].max(),100)
             ax.plot(xl,m*xl+b,"--",color="#F1F5F9",linewidth=1.5)
             ax.set_xlabel("IAN"); ax.set_ylabel("IPP"); ax.set_title(f"IPP vs IAN  (r={r:.2f})", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8)
+            ax.legend(loc="upper left", framealpha=0.15, facecolor=FUNDO, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -480,8 +489,8 @@ elif pagina == "Analise":
                 for xi,v in zip(x-w/2, m_at): ax.text(xi, v+0.05, f"{v:.2f}", ha="center", color="#F1F5F9", fontsize=8)
                 for xi,v in zip(x+w/2, m_na): ax.text(xi, v+0.05, f"{v:.2f}", ha="center", color="#F1F5F9", fontsize=8)
                 ax.set_xticks(x); ax.set_xticklabels(ind_cols); ax.set_ylim(0,10)
-                ax.set_title("PV: Atingiu vs Nao atingiu (2022)", fontsize=11)
-                ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8)
+                ax.set_ylim(0,10.8); ax.set_title("PV: Atingiu vs Nao atingiu (2022)", fontsize=11)
+                ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.15), ncol=2, framealpha=0, labelcolor=TEXTO, fontsize=8)
                 estilo_fig(fig); show(fig)
             else:
                 st.info("Dado de Ponto de Virada disponivel apenas em 2022.")
@@ -523,8 +532,9 @@ elif pagina == "Analise":
                     vals_r = [mp.loc[p,c] for c in cats_r]+[mp.loc[p,cats_r[0]]]
                     ax.plot(angles, vals_r, color=CORES_PEDRA[p], linewidth=2, label=p)
                     ax.fill(angles, vals_r, color=CORES_PEDRA[p], alpha=0.07)
-            ax.set_title("Perfil por Pedra", fontsize=12, color="#F1F5F9", pad=15)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8, loc="upper right", bbox_to_anchor=(1.3,1.1))
+            ax.set_title("Perfil por Pedra", fontsize=12, color="#F1F5F9", pad=15, fontweight="bold")
+            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=8, loc="upper right", bbox_to_anchor=(1.35,1.15))
+            fig.tight_layout()
             show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -542,9 +552,9 @@ elif pagina == "Analise":
                 if a in df_f2["Ano_Referencia"].values:
                     vals = [df_f2[(df_f2["Ano_Referencia"]==a)&(df_f2["Fase_Num"]==f)]["INDE"].mean() for f in fases_u]
                     ax.plot(fl, vals, marker="o", color=cor, linewidth=2, markersize=6, label=str(a))
-            ax.set_ylim(4,10); ax.set_title("INDE medio por Fase e Ano", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9)
-            plt.xticks(rotation=30, ha="right")
+            ax.set_ylim(4,10.8); ax.set_title("INDE medio por Fase e Ano", fontsize=12)
+            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.16), ncol=3, framealpha=0, labelcolor=TEXTO, fontsize=8)
+            plt.setp(ax.get_xticklabels(), rotation=30, ha="right", fontsize=9)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
@@ -558,7 +568,7 @@ elif pagina == "Analise":
                 bars = ax.bar(anos_x, vals, bottom=bottom, color=CORES_PEDRA[p], label=p, width=0.5)
                 bottom += np.array(vals)
             ax.set_xticks(anos_x); ax.set_title("Volume por Pedra e Ano", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9)
+            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.14), ncol=4, framealpha=0, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
@@ -585,8 +595,8 @@ elif pagina == "Analise":
                 vals = [dg2[(dg2["Ano_Referencia"]==a)&(dg2["Genero"]==gen)]["INDE"].mean() for a in anos_x]
                 ax.plot(anos_x, vals, marker="o", color=cor, linewidth=2.5, markersize=8, label=gen)
                 for a,v in zip(anos_x,vals): ax.annotate(f"{v:.2f}", (a,v), textcoords="offset points", xytext=(0,9), ha="center", color=cor, fontsize=9)
-            ax.set_xticks(anos_x); ax.set_ylim(5,10); ax.set_title("INDE medio por Genero e Ano", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9)
+            ax.set_xticks(anos_x); ax.set_ylim(5,10.5); ax.set_title("INDE medio por Genero e Ano", fontsize=12)
+            ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.14), ncol=2, framealpha=0, labelcolor=TEXTO, fontsize=9)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         with c2:
@@ -597,7 +607,7 @@ elif pagina == "Analise":
                 sub = di2[di2["Ano_Referencia"]==a]["Idade"].dropna()
                 if not sub.empty: ax.hist(sub, bins=18, color=cor, alpha=0.6, label=str(a), edgecolor=FUNDO)
             ax.set_xlabel("Idade"); ax.set_title("Distribuicao de idades por ano", fontsize=12)
-            ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9)
+            ax.legend(loc="upper right", framealpha=0, labelcolor=TEXTO, fontsize=8)
             estilo_fig(fig); show(fig)
             st.markdown("</div>", unsafe_allow_html=True)
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
@@ -632,8 +642,8 @@ elif pagina == "Modelo":
         b1 = ax.bar(x-w/2, auc_cv, w, color="#475569", label="AUC CV", alpha=0.9)
         b2 = ax.bar(x+w/2, auc_t, w, color=ACCENT, label="AUC Teste", alpha=0.9)
         for b,v in zip(list(b1)+list(b2), auc_cv+auc_t): ax.text(b.get_x()+b.get_width()/2, b.get_height()+0.005, f"{v:.3f}", ha="center", color="#F1F5F9", fontsize=9)
-        ax.set_xticks(x); ax.set_xticklabels(nomes, fontsize=8); ax.set_ylim(0.5,0.9)
-        ax.legend(framealpha=0, labelcolor=TEXTO, fontsize=9); ax.set_title("ROC-AUC por modelo", fontsize=12)
+        ax.set_xticks(x); ax.set_xticklabels(nomes, fontsize=9); ax.set_ylim(0.5,0.92)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5,1.15), ncol=2, framealpha=0, labelcolor=TEXTO, fontsize=9); ax.set_title("ROC-AUC por modelo", fontsize=12)
         estilo_fig(fig); show(fig)
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
@@ -694,6 +704,7 @@ elif pagina == "Avaliar Aluno":
             patches=[mpatches.Patch(color=ACCENT,label="Baixo <30%"),mpatches.Patch(color="#F59E0B",label="Moderado 30-50%"),mpatches.Patch(color="#EF4444",label="Alto >50%")]
             ax.legend(handles=patches,loc="lower center",ncol=3,fontsize=7,frameon=False,labelcolor=TEXTO)
             ax.set_xlim(-1.15,1.15); ax.set_ylim(-0.55,1.15)
+            fig.tight_layout()
             show(fig)
         with cr:
             if prob>=.5:
